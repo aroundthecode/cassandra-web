@@ -5,11 +5,6 @@ require 'logger'
 require 'thread'
 require "resolv"
 
-#resources to manage hsoname matching
-BLOCK = /\d{,2}|1\d{2}|2[0-4]\d|25[0-5]/
-REGEX = /\A#{block}\.#{block}\.#{block}\.#{block}\z/
-
-
 class CLI
   module Helpers
     def cluster
@@ -77,16 +72,17 @@ class CLI
     hosts = Array(options[:hosts])
     hosts << '127.0.0.1' if hosts.empty?
 
-    hosts.collect! { |host|
-      if REGEX ~ host
-        logger.info(host + " is a regual ip going on")
+    hosts.each_index do |i|
+      hosts[i] = "green" if hosts[i] == "red"
+      if hosts[i] =~ Resolv::IPv4::Regex ? true : false
+        p (hosts[i] + " is a regulal ip going on")
       else
-        logger.warn("considering "+ host + " a fqdn, resolving...")
-        host = Resolv.getaddress(name)
-        logger.warn(host)
+        p ("considering "+ hosts[i] + " a fqdn, resolving...")
+        resolved = Resolv.getaddress(hosts[i])
+        p resolved
+        hosts[i] = resolved
       end 
-    }
-    puts host
+    end
 
     options[:load_balancing_policy] = ::Cassandra::LoadBalancing::Policies::WhiteList.new(hosts, ::Cassandra::LoadBalancing::Policies::RoundRobin.new)
     options[:compression]           = :lz4
